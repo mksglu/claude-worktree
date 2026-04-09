@@ -454,7 +454,7 @@ function resolveClaudeWorktreeBin() {
   return p;
 }
 
-function cmdInstall() {
+function cmdInstall(quiet = false) {
   // 1. Create shims directory
   mkdirSync(_config.shimsDir, { recursive: true });
 
@@ -527,24 +527,42 @@ function cmdInstall() {
     try { return resolve(p) === resolve(_config.shimsDir); } catch { return false; }
   });
 
-  // Welcome banner — use stderr so npm shows it even without --foreground-scripts
-  const log = s => process.stderr.write(s + '\n');
-  log('');
-  log('  ┌─────────────────────────────────────────────────┐');
-  log('  │                                                 │');
-  log('  │   claude-worktree installed successfully        │');
-  log('  │                                                 │');
-  log('  │   Restart your terminal, then:                  │');
-  log('  │                                                 │');
-  log('  │   claude auth        create/resume workspace    │');
-  log('  │   claude ls          list workspaces            │');
-  log('  │   claude rm auth     remove workspace           │');
-  log('  │                                                 │');
-  log('  │   Works everywhere claude works.                │');
-  log('  │   Your existing claude commands are unchanged.  │');
-  log('  │                                                 │');
-  log('  └─────────────────────────────────────────────────┘');
-  log('');
+  if (quiet) {
+    // Called from postinstall — write first-run flag so banner shows on first use
+    const flagFile = join(_config.shimsDir, '.first-run');
+    writeFileSync(flagFile, '1', 'utf8');
+    return;
+  }
+
+  // Interactive install — show banner directly
+  showWelcomeBanner();
+}
+
+function showWelcomeBanner() {
+  console.log();
+  console.log('  ┌─────────────────────────────────────────────────┐');
+  console.log('  │                                                 │');
+  console.log('  │   claude-worktree installed successfully        │');
+  console.log('  │                                                 │');
+  console.log('  │   Restart your terminal, then:                  │');
+  console.log('  │                                                 │');
+  console.log('  │   claude auth        create/resume workspace    │');
+  console.log('  │   claude ls          list workspaces            │');
+  console.log('  │   claude rm auth     remove workspace           │');
+  console.log('  │                                                 │');
+  console.log('  │   Works everywhere claude works.                │');
+  console.log('  │   Your existing claude commands are unchanged.  │');
+  console.log('  │                                                 │');
+  console.log('  └─────────────────────────────────────────────────┘');
+  console.log();
+}
+
+function checkFirstRun() {
+  const flagFile = join(_config.shimsDir, '.first-run');
+  if (existsSync(flagFile)) {
+    unlinkSync(flagFile);
+    showWelcomeBanner();
+  }
 }
 
 function cmdUninstall() {
@@ -739,6 +757,16 @@ function parseArgs() {
 // -- Main ---------------------------------------------------------------------
 
 function main() {
+  // Check for --quiet flag (used by postinstall)
+  const isQuietInstall = process.argv.includes('--quiet') && process.argv.includes('install');
+  if (isQuietInstall) {
+    cmdInstall(true);
+    return;
+  }
+
+  // Show welcome banner on first run after npm install
+  checkFirstRun();
+
   const opts = parseArgs();
 
   switch (opts.cmd) {

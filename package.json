@@ -1,6 +1,6 @@
 {
   "name": "claude-worktree",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "Persistent named workspaces for Claude Code. Vibe coding with parallel worktrees.",
   "type": "module",
   "bin": {
@@ -15,7 +15,7 @@
     "url": "https://github.com/mksglu/claude-worktree"
   },
   "scripts": {
-    "postinstall": "node ./bin/claude-worktree.mjs install",
+    "postinstall": "node ./bin/claude-worktree.mjs install --quiet",
     "test": "node --test test/claude-worktree.test.mjs"
   },
   "engines": {
