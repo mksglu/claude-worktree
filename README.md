@@ -1,4 +1,4 @@
-# vibetree
+# claude-worktree
 
 Persistent named workspaces for Claude Code. Work on three branches simultaneously, close your terminal, come back tomorrow — everything is exactly where you left it.
 
@@ -53,7 +53,7 @@ $ claude auth
 ## Quick Start
 
 ```bash
-npm i -g vibetree
+npm i -g claude-worktree
 claude auth --skip-permissions    # creates workspace "auth", launches claude
 # ... work, exit, come back tomorrow ...
 claude auth --skip-permissions    # resumes where you left off
@@ -132,7 +132,7 @@ The shim mechanism is shell-agnostic. If your shell supports `$PATH` (they all d
 ## Uninstall
 
 ```bash
-vibetree uninstall && npm rm -g vibetree
+vibetree uninstall && npm rm -g claude-worktree
 ```
 
 Clean removal. The shim is deleted, your `$PATH` is restored, and the original `claude` command works as before. Your workspaces in `.vibetree/` directories are left intact — delete them manually if you want.
