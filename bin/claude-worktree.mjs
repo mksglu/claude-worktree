@@ -10,7 +10,9 @@ import { join, sep, resolve, basename, dirname } from 'path';
 import { homedir, platform } from 'os';
 import { spawnSync, spawn } from 'child_process';
 
-const VERSION = '1.0.0';
+import { readFileSync as _readPkg } from 'fs';
+import { fileURLToPath as _toPath } from 'url';
+const VERSION = JSON.parse(_readPkg(new URL('../package.json', import.meta.url), 'utf8')).version;
 const HOME = homedir();
 const CLAUDE_DIR = join(HOME, '.claude');
 const REGISTRY = join(CLAUDE_DIR, 'claude-worktree-registry');
