@@ -1,5 +1,5 @@
 {
-  "name": "vibetree",
+  "name": "claude-worktree",
   "version": "1.0.0",
   "description": "Persistent named workspaces for Claude Code. Vibe coding with parallel worktrees.",
   "type": "module",
@@ -12,7 +12,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/anthropics/vibetree"
+    "url": "https://github.com/mksglu/vibetree"
   },
   "scripts": {
     "postinstall": "node ./bin/vibetree.mjs install",
