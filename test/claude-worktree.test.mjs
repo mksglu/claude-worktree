@@ -7,9 +7,9 @@ import { spawnSync } from 'child_process';
 
 // ── Test helpers ────────────────────────────────────────────────────────────
 
-const BIN = join(import.meta.dirname, '..', 'bin', 'vibetree.mjs');
+const BIN = join(import.meta.dirname, '..', 'bin', 'claude-worktree.mjs');
 
-function vibetree(...args) {
+function cw(...args) {
   const r = spawnSync('node', [BIN, ...args], {
     encoding: 'utf8',
     stdio: ['pipe', 'pipe', 'pipe'],
@@ -29,16 +29,16 @@ async function loadModule() {
 }
 
 function setupTempEnv() {
-  tmpDir = mkdtempSync(join(tmpdir(), 'vibetree-test-'));
+  tmpDir = mkdtempSync(join(tmpdir(), 'cw-test-'));
   const claudeDir = join(tmpDir, '.claude');
   mkdirSync(claudeDir, { recursive: true });
 
   mod._setTestConfig({
     home: tmpDir,
     claudeDir,
-    registry: join(claudeDir, 'vibetree-registry'),
-    workspacesDir: join(claudeDir, 'vibetree-workspaces'),
-    shimsDir: join(tmpDir, '.vibetree', 'shims'),
+    registry: join(claudeDir, 'claude-worktree-registry'),
+    workspacesDir: join(claudeDir, 'claude-worktree-workspaces'),
+    shimsDir: join(tmpDir, '.claude-worktree', 'shims'),
   });
 }
 
@@ -69,7 +69,7 @@ function createFakeSession(wtPath, msgCount = 5) {
 
 // ── Tests ───────────────────────────────────────────────────────────────────
 
-describe('vibetree', async () => {
+describe('claude-worktree', async () => {
   await loadModule();
 
   // ── 1. Registry CRUD ────────────────────────────────────────────────────
@@ -84,18 +84,18 @@ describe('vibetree', async () => {
     });
 
     it('adds an entry', () => {
-      mod.regAdd('auth', '/tmp/auth', '/repo', 'vt/auth');
+      mod.regAdd('auth', '/tmp/auth', '/repo', 'cw/auth');
       const entries = mod.regLoad();
       assert.equal(entries.length, 1);
       assert.equal(entries[0].name, 'auth');
       assert.equal(entries[0].path, '/tmp/auth');
       assert.equal(entries[0].repo, '/repo');
-      assert.equal(entries[0].branch, 'vt/auth');
+      assert.equal(entries[0].branch, 'cw/auth');
       assert.ok(entries[0].created.length > 0);
     });
 
     it('lookup returns entry by name', () => {
-      mod.regAdd('auth', '/tmp/auth', '/repo', 'vt/auth');
+      mod.regAdd('auth', '/tmp/auth', '/repo', 'cw/auth');
       const entry = mod.regLookup('auth');
       assert.ok(entry);
       assert.equal(entry.name, 'auth');
@@ -108,8 +108,8 @@ describe('vibetree', async () => {
     });
 
     it('removes an entry', () => {
-      mod.regAdd('auth', '/tmp/auth', '/repo', 'vt/auth');
-      mod.regAdd('api', '/tmp/api', '/repo', 'vt/api');
+      mod.regAdd('auth', '/tmp/auth', '/repo', 'cw/auth');
+      mod.regAdd('api', '/tmp/api', '/repo', 'cw/api');
       mod.regRemove('auth');
       const entries = mod.regLoad();
       assert.equal(entries.length, 1);
@@ -117,8 +117,8 @@ describe('vibetree', async () => {
     });
 
     it('overwrite on duplicate name', () => {
-      mod.regAdd('auth', '/tmp/old', '/repo', 'vt/auth');
-      mod.regAdd('auth', '/tmp/new', '/repo', 'vt/auth');
+      mod.regAdd('auth', '/tmp/old', '/repo', 'cw/auth');
+      mod.regAdd('auth', '/tmp/new', '/repo', 'cw/auth');
       const entries = mod.regLoad();
       assert.equal(entries.length, 1);
       assert.equal(entries[0].path, '/tmp/new');
@@ -133,7 +133,7 @@ describe('vibetree', async () => {
     });
 
     it('remove nonexistent is safe', () => {
-      mod.regAdd('auth', '/tmp/auth', '/repo', 'vt/auth');
+      mod.regAdd('auth', '/tmp/auth', '/repo', 'cw/auth');
       mod.regRemove('nonexistent');
       assert.equal(mod.regLoad().length, 1);
     });
@@ -219,7 +219,7 @@ describe('vibetree', async () => {
 
   describe('parseArgs', () => {
     function parse(...args) {
-      process.argv = ['node', 'vibetree', ...args];
+      process.argv = ['node', 'claude-worktree', ...args];
       return mod.parseArgs();
     }
 
@@ -342,7 +342,7 @@ describe('vibetree', async () => {
   // ── 6. Proxy routing ───────────────────────────────────────────────────
 
   describe('isOurCommand', () => {
-    it('recognizes vibetree subcommands', () => {
+    it('recognizes claude-worktree subcommands', () => {
       assert.equal(mod.isOurCommand('ls'), true);
       assert.equal(mod.isOurCommand('list'), true);
       assert.equal(mod.isOurCommand('rm'), true);
@@ -439,23 +439,23 @@ describe('vibetree', async () => {
 
     it('creates worktree with correct branch', () => {
       const repo = createTempGitRepo();
-      const wtPath = join(repo, '.vibetree', 'feat-auth');
-      mkdirSync(join(repo, '.vibetree'), { recursive: true });
+      const wtPath = join(repo, '.cw', 'feat-auth');
+      mkdirSync(join(repo, '.cw'), { recursive: true });
 
-      const r = mod.git(repo, 'worktree', 'add', wtPath, '-b', 'vt/feat-auth', 'HEAD');
+      const r = mod.git(repo, 'worktree', 'add', wtPath, '-b', 'cw/feat-auth', 'HEAD');
       assert.equal(r.ok, true);
       assert.ok(existsSync(wtPath));
 
       const branch = mod.git(wtPath, 'branch', '--show-current');
-      assert.equal(branch.out, 'vt/feat-auth');
+      assert.equal(branch.out, 'cw/feat-auth');
     });
 
     it('worktree is isolated from main', () => {
       const repo = createTempGitRepo();
-      const wtPath = join(repo, '.vibetree', 'isolated');
-      mkdirSync(join(repo, '.vibetree'), { recursive: true });
+      const wtPath = join(repo, '.cw', 'isolated');
+      mkdirSync(join(repo, '.cw'), { recursive: true });
 
-      mod.git(repo, 'worktree', 'add', wtPath, '-b', 'vt/isolated', 'HEAD');
+      mod.git(repo, 'worktree', 'add', wtPath, '-b', 'cw/isolated', 'HEAD');
 
       // Create file in worktree
       writeFileSync(join(wtPath, 'test.txt'), 'hello', 'utf8');
@@ -467,17 +467,17 @@ describe('vibetree', async () => {
 
     it('worktree cleanup works', () => {
       const repo = createTempGitRepo();
-      const wtPath = join(repo, '.vibetree', 'cleanup');
-      mkdirSync(join(repo, '.vibetree'), { recursive: true });
+      const wtPath = join(repo, '.cw', 'cleanup');
+      mkdirSync(join(repo, '.cw'), { recursive: true });
 
-      mod.git(repo, 'worktree', 'add', wtPath, '-b', 'vt/cleanup', 'HEAD');
+      mod.git(repo, 'worktree', 'add', wtPath, '-b', 'cw/cleanup', 'HEAD');
       assert.ok(existsSync(wtPath));
 
       mod.git(repo, 'worktree', 'remove', wtPath, '--force');
       assert.ok(!existsSync(wtPath));
 
-      mod.git(repo, 'branch', '-D', 'vt/cleanup');
-      const branches = mod.git(repo, 'branch', '--list', 'vt/cleanup');
+      mod.git(repo, 'branch', '-D', 'cw/cleanup');
+      const branches = mod.git(repo, 'branch', '--list', 'cw/cleanup');
       assert.equal(branches.out, '');
     });
   });
@@ -519,25 +519,25 @@ describe('vibetree', async () => {
     beforeEach(() => setupTempEnv());
     afterEach(() => cleanupTempEnv());
 
-    it('adds .vibetree/ to existing .gitignore', () => {
+    it('adds .cw/ to existing .gitignore', () => {
       const repo = createTempGitRepo();
       writeFileSync(join(repo, '.gitignore'), 'node_modules/\n', 'utf8');
 
       mod.ensureGitignore(repo);
 
       const content = readFileSync(join(repo, '.gitignore'), 'utf8');
-      assert.ok(content.includes('.vibetree/'));
+      assert.ok(content.includes('.cw/'));
       assert.ok(content.includes('node_modules/'));
     });
 
-    it('does not duplicate .vibetree/ entry', () => {
+    it('does not duplicate .cw/ entry', () => {
       const repo = createTempGitRepo();
-      writeFileSync(join(repo, '.gitignore'), '.vibetree/\n', 'utf8');
+      writeFileSync(join(repo, '.gitignore'), '.cw/\n', 'utf8');
 
       mod.ensureGitignore(repo);
 
       const content = readFileSync(join(repo, '.gitignore'), 'utf8');
-      const count = content.split('.vibetree/').length - 1;
+      const count = content.split('.cw/').length - 1;
       assert.equal(count, 1);
     });
 
@@ -572,21 +572,21 @@ describe('vibetree', async () => {
 
     it('removes worktree and deletes branch', () => {
       const repo = createTempGitRepo();
-      const wtPath = join(repo, '.vibetree', 'rm-wt');
-      mkdirSync(join(repo, '.vibetree'), { recursive: true });
-      mod.git(repo, 'worktree', 'add', wtPath, '-b', 'vt/rm-wt', 'HEAD');
-      mod.regAdd('rm-wt', wtPath, repo, 'vt/rm-wt');
+      const wtPath = join(repo, '.cw', 'rm-wt');
+      mkdirSync(join(repo, '.cw'), { recursive: true });
+      mod.git(repo, 'worktree', 'add', wtPath, '-b', 'cw/rm-wt', 'HEAD');
+      mod.regAdd('rm-wt', wtPath, repo, 'cw/rm-wt');
 
       mod.cmdRemove('rm-wt', true); // force
 
       assert.equal(mod.regLookup('rm-wt'), null);
       assert.ok(!existsSync(wtPath));
-      const branches = mod.git(repo, 'branch', '--list', 'vt/rm-wt');
+      const branches = mod.git(repo, 'branch', '--list', 'cw/rm-wt');
       assert.equal(branches.out, '');
     });
 
     it('cleans stale entry when directory gone', () => {
-      mod.regAdd('gone', '/nonexistent', '/repo', 'vt/gone');
+      mod.regAdd('gone', '/nonexistent', '/repo', 'cw/gone');
       mod.cmdRemove('gone', false);
       assert.equal(mod.regLookup('gone'), null);
     });
@@ -600,7 +600,7 @@ describe('vibetree', async () => {
 
     it('creates claude shim file', () => {
       const cfg = mod._getConfig();
-      // Mock process.argv[1] for resolveVibetreeBin
+      // Mock process.argv[1] for resolveClaudeWorktreeBin
       const origArgv = process.argv[1];
       process.argv[1] = BIN;
 
@@ -617,7 +617,7 @@ describe('vibetree', async () => {
         assert.ok(existsSync(shimPath), 'Shim file should exist');
 
         const content = readFileSync(shimPath, 'utf8');
-        assert.ok(content.includes('vibetree'), 'Shim should reference vibetree');
+        assert.ok(content.includes('claude-worktree'), 'Shim should reference claude-worktree');
         assert.ok(content.includes('proxy'), 'Shim should use proxy mode');
       } finally {
         process.argv[1] = origArgv;
@@ -640,56 +640,56 @@ describe('vibetree', async () => {
 
   describe('CLI integration', () => {
     it('version outputs version', () => {
-      const r = vibetree('version');
+      const r = cw('version');
       assert.equal(r.code, 0);
-      assert.ok(r.stdout.includes('vibetree v'));
+      assert.ok(r.stdout.includes('claude-worktree v'));
     });
 
     it('help outputs usage', () => {
-      const r = vibetree('help');
+      const r = cw('help');
       assert.equal(r.code, 0);
       assert.ok(r.stdout.includes('USAGE'));
-      assert.ok(r.stdout.includes('vibetree'));
+      assert.ok(r.stdout.includes('claude-worktree'));
     });
 
     it('--help works', () => {
-      const r = vibetree('--help');
+      const r = cw('--help');
       assert.equal(r.code, 0);
       assert.ok(r.stdout.includes('USAGE'));
     });
 
     it('-h works', () => {
-      const r = vibetree('-h');
+      const r = cw('-h');
       assert.equal(r.code, 0);
       assert.ok(r.stdout.includes('USAGE'));
     });
 
     it('--version works', () => {
-      const r = vibetree('--version');
+      const r = cw('--version');
       assert.equal(r.code, 0);
-      assert.ok(r.stdout.includes('vibetree v'));
+      assert.ok(r.stdout.includes('claude-worktree v'));
     });
 
     it('ls shows empty state', () => {
-      const r = vibetree('ls');
+      const r = cw('ls');
       assert.equal(r.code, 0);
       // Should show header at minimum
       assert.ok(r.stdout.includes('Workspaces') || r.stdout.includes('workspace'));
     });
 
     it('rm nonexistent fails gracefully', () => {
-      const r = vibetree('rm', 'nonexistent-xyz');
+      const r = cw('rm', 'nonexistent-xyz');
       assert.notEqual(r.code, 0);
       assert.ok(r.stderr.includes('not found') || r.stdout.includes('not found'));
     });
 
     it('path nonexistent fails gracefully', () => {
-      const r = vibetree('path', 'nonexistent-xyz');
+      const r = cw('path', 'nonexistent-xyz');
       assert.notEqual(r.code, 0);
     });
 
     it('invalid workspace name rejected', () => {
-      const r = vibetree('bad name with spaces', '--no-start');
+      const r = cw('bad name with spaces', '--no-start');
       assert.notEqual(r.code, 0);
     });
   });

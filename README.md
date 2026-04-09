@@ -63,10 +63,10 @@ That's it. No setup, no config files, no env vars.
 
 ## How It Works
 
-vibetree installs a shim at `~/.vibetree/shims/claude` that intercepts the `claude` command transparently. Your shell doesn't know the difference.
+claude-worktree installs a shim at `~/.claude-worktree/shims/claude` that intercepts the `claude` command transparently. Your shell doesn't know the difference.
 
 **Inside a git repo:**
-- Creates a real `git worktree` at `.vibetree/<name>/` with an isolated branch
+- Creates a real `git worktree` at `.cw/<name>/` with an isolated branch
 - Session files persist at `~/.claude/projects/{path}/`
 - Resume uses `claude --continue` (standard CLI feature, not KAIROS-gated)
 
@@ -75,9 +75,9 @@ vibetree installs a shim at `~/.vibetree/shims/claude` that intercepts the `clau
 - Same persistence, same resume behavior
 
 **Shell integration:**
-- Shim lives at `~/.vibetree/shims/` — prepended to `$PATH`
+- Shim lives at `~/.claude-worktree/shims/` — prepended to `$PATH`
 - Works in every shell without per-shell configuration
-- Original `claude` binary remains untouched and accessible via `vibetree passthrough`
+- Original `claude` binary remains untouched and accessible via `claude-worktree passthrough`
 
 ## Commands
 
@@ -87,8 +87,8 @@ vibetree installs a shim at `~/.vibetree/shims/claude` that intercepts the `clau
 | `claude ls` | List all workspaces |
 | `claude rm auth` | Remove workspace and its worktree |
 | `claude auth --new` | Force a fresh session (discard previous) |
-| `vibetree install` | Set up the claude shim |
-| `vibetree uninstall` | Remove shim, restore original claude |
+| `claude-worktree install` | Set up the claude shim |
+| `claude-worktree uninstall` | Remove shim, restore original claude |
 
 ## Parallel Worktrees
 
@@ -96,9 +96,9 @@ This is the killer feature. One repo, multiple isolated branches, multiple Claud
 
 ```
 ~/myrepo/                          <- main branch (untouched)
-~/myrepo/.vibetree/auth/           <- auth feature (isolated branch)
-~/myrepo/.vibetree/api/            <- api work (isolated branch)
-~/myrepo/.vibetree/tests/          <- test writing (isolated branch)
+~/myrepo/.cw/auth/                 <- auth feature (isolated branch)
+~/myrepo/.cw/api/                  <- api work (isolated branch)
+~/myrepo/.cw/tests/                <- test writing (isolated branch)
 ```
 
 Run them simultaneously:
@@ -127,15 +127,15 @@ Works everywhere Claude Code runs:
 - **Linux** — bash, zsh, fish, nushell
 - **Windows** — PowerShell, cmd, nushell
 
-The shim mechanism is shell-agnostic. If your shell supports `$PATH` (they all do), vibetree works.
+The shim mechanism is shell-agnostic. If your shell supports `$PATH` (they all do), claude-worktree works.
 
 ## Uninstall
 
 ```bash
-vibetree uninstall && npm rm -g claude-worktree
+claude-worktree uninstall && npm rm -g claude-worktree
 ```
 
-Clean removal. The shim is deleted, your `$PATH` is restored, and the original `claude` command works as before. Your workspaces in `.vibetree/` directories are left intact — delete them manually if you want.
+Clean removal. The shim is deleted, your `$PATH` is restored, and the original `claude` command works as before. Your workspaces in `.cw/` directories are left intact — delete them manually if you want.
 
 ## License
 

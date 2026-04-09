@@ -1,10 +1,10 @@
 {
   "name": "claude-worktree",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Persistent named workspaces for Claude Code. Vibe coding with parallel worktrees.",
   "type": "module",
   "bin": {
-    "vibetree": "./bin/vibetree.mjs"
+    "claude-worktree": "./bin/claude-worktree.mjs"
   },
   "files": ["bin/"],
   "keywords": ["claude", "claude-code", "worktree", "workspace", "vibe-coding", "ai", "agent"],
@@ -12,11 +12,11 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/mksglu/vibetree"
+    "url": "https://github.com/mksglu/claude-worktree"
   },
   "scripts": {
-    "postinstall": "node ./bin/vibetree.mjs install",
-    "test": "node --test test/vibetree.test.mjs"
+    "postinstall": "node ./bin/claude-worktree.mjs install",
+    "test": "node --test test/claude-worktree.test.mjs"
   },
   "engines": {
     "node": ">=18"

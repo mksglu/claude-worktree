@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-// vibetree v1.0.0 — Cross-platform persistent workspace manager for Claude Code
+// claude-worktree v1.0.0 — Cross-platform persistent workspace manager for Claude Code
 // PROXY MODE: when installed as a claude alias, intercepts workspace commands
 // and passes everything else to the real claude binary.
 // Works on macOS, Linux, Windows. Zero dependencies.
@@ -13,10 +13,10 @@ import { spawnSync, spawn } from 'child_process';
 const VERSION = '1.0.0';
 const HOME = homedir();
 const CLAUDE_DIR = join(HOME, '.claude');
-const REGISTRY = join(CLAUDE_DIR, 'vibetree-registry');
-const WORKSPACES_DIR = join(CLAUDE_DIR, 'vibetree-workspaces');
-const WORKTREE_DIR = '.vibetree';
-const BRANCH_PREFIX = 'vt';
+const REGISTRY = join(CLAUDE_DIR, 'claude-worktree-registry');
+const WORKSPACES_DIR = join(CLAUDE_DIR, 'claude-worktree-workspaces');
+const WORKTREE_DIR = '.cw';
+const BRANCH_PREFIX = 'cw';
 const IS_WIN = platform() === 'win32';
 
 // Config — overridable for testing
@@ -25,7 +25,7 @@ const _config = {
   claudeDir: CLAUDE_DIR,
   registry: REGISTRY,
   workspacesDir: WORKSPACES_DIR,
-  shimsDir: join(HOME, '.vibetree', 'shims'),
+  shimsDir: join(HOME, '.claude-worktree', 'shims'),
 };
 
 export function _setTestConfig(overrides) {
@@ -187,11 +187,11 @@ function findRealClaude() {
   const result = spawnSync(IS_WIN ? 'where' : 'which', ['-a', 'claude'], { encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'] });
   const paths = (result.stdout || '').trim().split('\n').filter(Boolean);
 
-  // Our alias resolves to vibetree, so find the one that's NOT vibetree
+  // Our alias resolves to claude-worktree, so find the one that's NOT claude-worktree
   for (const p of paths) {
     try {
       const content = readFileSync(p, 'utf8');
-      if (!content.includes('vibetree')) return p;
+      if (!content.includes('claude-worktree')) return p;
     } catch {
       // Binary file or unreadable — not us
       return p;
@@ -243,7 +243,7 @@ function launchRealClaude(cwd, args) {
 
 function cmdCreate(name, opts) {
   if (regLookup(name)) {
-    die(`'${name}' already exists.\n  Just run: vibetree ${name}`);
+    die(`'${name}' already exists.\n  Just run: claude-worktree ${name}`);
   }
 
   let root = opts.repo ? resolve(opts.repo.replace(/^~/, HOME)) : gitRoot(process.cwd());
@@ -286,13 +286,13 @@ function cmdCreate(name, opts) {
   console.log();
 
   if (opts.noStart) {
-    console.log(`  Start: vibetree ${name} --skip-permissions`);
+    console.log(`  Start: claude-worktree ${name} --skip-permissions`);
     console.log(`  Enter: cd ${wtPath}`);
     return;
   }
 
   info('Launching Claude Code...');
-  console.log(`  ${c.dim(`Resume later -> vibetree ${name}`)}`);
+  console.log(`  ${c.dim(`Resume later -> claude-worktree ${name}`)}`);
   console.log();
 
   const args = [];
@@ -333,11 +333,11 @@ function cmdOpen(name, entry, opts) {
 function cmdList() {
   const entries = regLoad();
   console.log();
-  console.log(c.bold('Vibetree Workspaces'));
+  console.log(c.bold('Claude Worktree Workspaces'));
   console.log();
 
   if (!entries.length) {
-    console.log('  No workspaces. Create one:  vibetree <name>');
+    console.log('  No workspaces. Create one:  claude-worktree <name>');
     console.log();
     return;
   }
@@ -362,8 +362,8 @@ function cmdList() {
   }
 
   console.log();
-  console.log(`  ${c.dim('vibetree <name>        enter workspace')}`);
-  console.log(`  ${c.dim('vibetree rm <name>     remove')}`);
+  console.log(`  ${c.dim('claude-worktree <name>        enter workspace')}`);
+  console.log(`  ${c.dim('claude-worktree rm <name>     remove')}`);
   console.log();
 }
 
@@ -437,13 +437,13 @@ function cmdPath(name) {
 
 // ── Shim-based install (works in ALL shells) ────────────────────────────────
 // Instead of shell-specific aliases, we create a real `claude` shim file
-// in ~/.vibetree/shims/ and add it to PATH. This works in zsh, bash, fish,
+// in ~/.claude-worktree/shims/ and add it to PATH. This works in zsh, bash, fish,
 // PowerShell, cmd.exe, nushell, and any other shell.
 
-const SHIMS_DIR = join(HOME, '.vibetree', 'shims');
+const SHIMS_DIR = join(HOME, '.claude-worktree', 'shims');
 
-function resolveVibetreeBin() {
-  // Find the vibetree binary path (could be npm global, local, etc.)
+function resolveClaudeWorktreeBin() {
+  // Find the claude-worktree binary path (could be npm global, local, etc.)
   let p = resolve(process.argv[1]);
   try {
     while (lstatSync(p).isSymbolicLink()) {
@@ -458,25 +458,25 @@ function cmdInstall() {
   // 1. Create shims directory
   mkdirSync(_config.shimsDir, { recursive: true });
 
-  // 2. Find vibetree binary
-  const vibetreeBin = resolveVibetreeBin();
+  // 2. Find claude-worktree binary
+  const cwBin = resolveClaudeWorktreeBin();
 
   // 3. Write claude shim
   if (IS_WIN) {
     // Windows: .cmd shim
     const shimPath = join(_config.shimsDir, 'claude.cmd');
-    writeFileSync(shimPath, `@echo off\r\nnode "${vibetreeBin}" proxy %*\r\n`, 'utf8');
+    writeFileSync(shimPath, `@echo off\r\nnode "${cwBin}" proxy %*\r\n`, 'utf8');
     success(`Created shim: ${shimPath}`);
   } else {
     // Unix: executable script
     const shimPath = join(_config.shimsDir, 'claude');
-    writeFileSync(shimPath, `#!/usr/bin/env node\nimport { spawn } from 'child_process';\nconst child = spawn(process.argv[0], ['${vibetreeBin}', 'proxy', ...process.argv.slice(2)], { stdio: 'inherit' });\nchild.on('exit', c => process.exit(c ?? 0));\n`, { mode: 0o755 });
+    writeFileSync(shimPath, `#!/usr/bin/env node\nimport { spawn } from 'child_process';\nconst child = spawn(process.argv[0], ['${cwBin}', 'proxy', ...process.argv.slice(2)], { stdio: 'inherit' });\nchild.on('exit', c => process.exit(c ?? 0));\n`, { mode: 0o755 });
     success(`Created shim: ${shimPath}`);
   }
 
   // 4. Add shims dir to PATH in shell rc
   const pathLine = `export PATH="${_config.shimsDir}:$PATH"`;
-  const comment = '# vibetree shims — persistent workspaces for Claude Code';
+  const comment = '# claude-worktree shims — persistent workspaces for Claude Code';
 
   // Detect shell and rc files
   const shell = process.env.SHELL || '';
@@ -498,7 +498,7 @@ function cmdInstall() {
     for (const { file, line } of candidates) {
       if (!existsSync(file)) continue;
       const content = readFileSync(file, 'utf8');
-      if (content.includes('.vibetree/shims')) {
+      if (content.includes('.claude-worktree/shims')) {
         rcFiles.push({ file, status: 'already' });
         continue;
       }
@@ -527,18 +527,22 @@ function cmdInstall() {
     try { return resolve(p) === resolve(_config.shimsDir); } catch { return false; }
   });
 
+  // Welcome banner (shows after npm i -g claude-worktree)
   console.log();
-  if (inPath) {
-    success('vibetree is active! Try: claude auth');
-  } else {
-    info('Restart your shell or run:');
-    const rcHint = rcFiles.find(r => r.status === 'added' || r.status === 'created');
-    if (rcHint) console.log(`  source ${rcHint.file}`);
-    console.log();
-    info('Then try:');
-    console.log('  claude auth            # creates/resumes workspace');
-    console.log('  claude "fix this bug"  # normal claude (passthrough)');
-  }
+  console.log('  ┌─────────────────────────────────────────────────┐');
+  console.log('  │                                                 │');
+  console.log('  │   claude-worktree installed successfully        │');
+  console.log('  │                                                 │');
+  console.log('  │   Restart your terminal, then:                  │');
+  console.log('  │                                                 │');
+  console.log('  │   claude auth        create/resume workspace    │');
+  console.log('  │   claude ls          list workspaces            │');
+  console.log('  │   claude rm auth     remove workspace           │');
+  console.log('  │                                                 │');
+  console.log('  │   Works everywhere claude works.                │');
+  console.log('  │   Your existing claude commands are unchanged.  │');
+  console.log('  │                                                 │');
+  console.log('  └─────────────────────────────────────────────────┘');
   console.log();
 }
 
@@ -561,19 +565,19 @@ function cmdUninstall() {
   for (const rcFile of rcCandidates) {
     if (!existsSync(rcFile)) continue;
     const content = readFileSync(rcFile, 'utf8');
-    if (!content.includes('.vibetree/shims')) continue;
+    if (!content.includes('.claude-worktree/shims')) continue;
 
     const lines = content.split('\n');
     const filtered = lines.filter(l =>
-      !l.includes('.vibetree/shims') &&
-      l.trim() !== '# vibetree shims — persistent workspaces for Claude Code'
+      !l.includes('.claude-worktree/shims') &&
+      l.trim() !== '# claude-worktree shims — persistent workspaces for Claude Code'
     );
     writeFileSync(rcFile, filtered.join('\n'), 'utf8');
     success(`Cleaned ${rcFile}`);
   }
 
   console.log();
-  success('vibetree uninstalled. Restart your shell.');
+  success('claude-worktree uninstalled. Restart your shell.');
   console.log();
 }
 
@@ -597,8 +601,8 @@ function cmdProxy(args) {
 
   // Check if it's our subcommand
   if (isOurCommand(first)) {
-    // Re-parse as vibetree command
-    process.argv = ['node', 'vibetree', ...args];
+    // Re-parse as claude-worktree command
+    process.argv = ['node', 'claude-worktree', ...args];
     main();
     return;
   }
@@ -607,7 +611,7 @@ function cmdProxy(args) {
   const entry = resolve_ws(first);
   if (entry) {
     // Workspace exists -> resume
-    process.argv = ['node', 'vibetree', ...args];
+    process.argv = ['node', 'claude-worktree', ...args];
     main();
     return;
   }
@@ -619,7 +623,7 @@ function cmdProxy(args) {
   if (!first.startsWith('-') && !first.startsWith('"') && !first.startsWith("'")
       && first.length <= 30 && /^[a-zA-Z0-9._-]+$/.test(first)) {
     // Could be a new workspace name -> create it
-    process.argv = ['node', 'vibetree', ...args];
+    process.argv = ['node', 'claude-worktree', ...args];
     main();
     return;
   }
@@ -632,19 +636,19 @@ function cmdProxy(args) {
 
 function cmdHelp() {
   console.log(`
-${c.bold('vibetree')} ${c.dim(`v${VERSION}`)} — Cross-platform persistent workspaces for Claude Code
+${c.bold('claude-worktree')} ${c.dim(`v${VERSION}`)} — Cross-platform persistent workspaces for Claude Code
 
 ${c.bold('USAGE')}
-  vibetree <name>                Resume or create workspace
-  vibetree <name> --new          Force new session
-  vibetree ls                    List all workspaces
-  vibetree rm <name>             Remove workspace
-  vibetree path <name>           Print workspace path
-  vibetree install               Set up claude shim (works in ALL shells)
-  vibetree uninstall             Remove claude shim
+  claude-worktree <name>                Resume or create workspace
+  claude-worktree <name> --new          Force new session
+  claude-worktree ls                    List all workspaces
+  claude-worktree rm <name>             Remove workspace
+  claude-worktree path <name>           Print workspace path
+  claude-worktree install               Set up claude shim (works in ALL shells)
+  claude-worktree uninstall             Remove claude shim
 
 ${c.bold('HOW IT WORKS')}
-  ${c.cyan('vibetree install')} creates a ${c.bold('claude')} shim at ~/.vibetree/shims/
+  ${c.cyan('claude-worktree install')} creates a ${c.bold('claude')} shim at ~/.claude-worktree/shims/
   and adds it to PATH. Works in zsh, bash, fish, PowerShell, nushell, cmd.
 
   After install, ${c.cyan('claude')} becomes a smart proxy:
@@ -654,7 +658,7 @@ ${c.bold('HOW IT WORKS')}
   claude "fix this bug"          ${c.dim('# passthrough → real claude')}
   claude --help                  ${c.dim('# passthrough → real claude')}
 
-  Workspace name? → vibetree handles it.
+  Workspace name? → claude-worktree handles it.
   Everything else? → passes through to the real claude binary.
 
 ${c.bold('OPTIONS')}
@@ -665,11 +669,11 @@ ${c.bold('OPTIONS')}
   -- <args>            Pass remaining args to Claude
 
 ${c.bold('EXAMPLES')}
-  vibetree auth --skip-permissions         ${c.dim('# create or resume')}
-  vibetree auth --new --skip-permissions   ${c.dim('# force new session')}
-  vibetree ls                              ${c.dim('# list all')}
-  vibetree rm auth                         ${c.dim('# remove')}
-  cd $(vibetree path auth)                 ${c.dim('# cd into it')}
+  claude-worktree auth --skip-permissions         ${c.dim('# create or resume')}
+  claude-worktree auth --new --skip-permissions   ${c.dim('# force new session')}
+  claude-worktree ls                              ${c.dim('# list all')}
+  claude-worktree rm auth                         ${c.dim('# remove')}
+  cd $(claude-worktree path auth)                 ${c.dim('# cd into it')}
 
 ${c.bold('PLATFORMS')}
   macOS, Linux, Windows (Git Bash / PowerShell / cmd)
@@ -738,7 +742,7 @@ function main() {
 
   switch (opts.cmd) {
     case 'help': cmdHelp(); break;
-    case 'version': console.log(`vibetree v${VERSION}`); break;
+    case 'version': console.log(`claude-worktree v${VERSION}`); break;
     case 'ls': cmdList(); break;
     case 'install': cmdInstall(); break;
     case 'uninstall': cmdUninstall(); break;
@@ -748,12 +752,12 @@ function main() {
       break;
 
     case 'rm':
-      if (!opts.name) die('Usage: vibetree rm <name> [--force]');
+      if (!opts.name) die('Usage: claude-worktree rm <name> [--force]');
       cmdRemove(opts.name, opts.force);
       break;
 
     case 'path':
-      if (!opts.name) die('Usage: vibetree path <name>');
+      if (!opts.name) die('Usage: claude-worktree path <name>');
       cmdPath(opts.name);
       break;
 
@@ -804,8 +808,8 @@ export {
 
 // Run main() only when executed directly (not imported as module)
 const isDirectRun = process.argv[1] && (
-  process.argv[1].endsWith('vibetree.mjs') ||
-  process.argv[1].endsWith('vibetree') ||
-  process.argv[1].includes('/vibetree/')
+  process.argv[1].endsWith('claude-worktree.mjs') ||
+  process.argv[1].endsWith('claude-worktree') ||
+  process.argv[1].includes('/claude-worktree/')
 );
 if (isDirectRun) main();
