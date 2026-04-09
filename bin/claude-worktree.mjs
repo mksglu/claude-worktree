@@ -527,23 +527,24 @@ function cmdInstall() {
     try { return resolve(p) === resolve(_config.shimsDir); } catch { return false; }
   });
 
-  // Welcome banner (shows after npm i -g claude-worktree)
-  console.log();
-  console.log('  ┌─────────────────────────────────────────────────┐');
-  console.log('  │                                                 │');
-  console.log('  │   claude-worktree installed successfully        │');
-  console.log('  │                                                 │');
-  console.log('  │   Restart your terminal, then:                  │');
-  console.log('  │                                                 │');
-  console.log('  │   claude auth        create/resume workspace    │');
-  console.log('  │   claude ls          list workspaces            │');
-  console.log('  │   claude rm auth     remove workspace           │');
-  console.log('  │                                                 │');
-  console.log('  │   Works everywhere claude works.                │');
-  console.log('  │   Your existing claude commands are unchanged.  │');
-  console.log('  │                                                 │');
-  console.log('  └─────────────────────────────────────────────────┘');
-  console.log();
+  // Welcome banner — use stderr so npm shows it even without --foreground-scripts
+  const log = s => process.stderr.write(s + '\n');
+  log('');
+  log('  ┌─────────────────────────────────────────────────┐');
+  log('  │                                                 │');
+  log('  │   claude-worktree installed successfully        │');
+  log('  │                                                 │');
+  log('  │   Restart your terminal, then:                  │');
+  log('  │                                                 │');
+  log('  │   claude auth        create/resume workspace    │');
+  log('  │   claude ls          list workspaces            │');
+  log('  │   claude rm auth     remove workspace           │');
+  log('  │                                                 │');
+  log('  │   Works everywhere claude works.                │');
+  log('  │   Your existing claude commands are unchanged.  │');
+  log('  │                                                 │');
+  log('  └─────────────────────────────────────────────────┘');
+  log('');
 }
 
 function cmdUninstall() {
