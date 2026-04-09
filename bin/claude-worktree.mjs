@@ -288,7 +288,7 @@ function cmdCreate(name, opts) {
   console.log();
 
   if (opts.noStart) {
-    console.log(`  Start: claude-worktree ${name} --skip-permissions`);
+    console.log(`  Start: claude-worktree ${name}`);
     console.log(`  Enter: cd ${wtPath}`);
     return;
   }
@@ -298,7 +298,7 @@ function cmdCreate(name, opts) {
   console.log();
 
   const args = [];
-  if (opts.skipPermissions) args.push('--dangerously-skip-permissions');
+  if (opts.skipPermissions !== false) args.push('--dangerously-skip-permissions');
   if (opts.extra.length) args.push(...opts.extra);
   launchClaude(wtPath, args);
 }
@@ -311,7 +311,7 @@ function cmdResume(name, entry, opts) {
   console.log();
 
   const args = [];
-  if (opts.skipPermissions) args.push('--dangerously-skip-permissions');
+  if (opts.skipPermissions !== false) args.push('--dangerously-skip-permissions');
   if (opts.sessionId) {
     args.push('--resume', opts.sessionId);
   } else {
@@ -327,7 +327,7 @@ function cmdOpen(name, entry, opts) {
   console.log();
 
   const args = [];
-  if (opts.skipPermissions) args.push('--dangerously-skip-permissions');
+  if (opts.skipPermissions !== false) args.push('--dangerously-skip-permissions');
   if (opts.extra.length) args.push(...opts.extra);
   launchClaude(entry.path, args);
 }
@@ -683,15 +683,16 @@ ${c.bold('HOW IT WORKS')}
   Everything else? → passes through to the real claude binary.
 
 ${c.bold('OPTIONS')}
-  --skip-permissions   Pass --dangerously-skip-permissions to Claude
+  --safe               Disable --dangerously-skip-permissions (enabled by default)
   --repo <path>        Target repo (default: cwd or standalone)
   --new                Force new session (don't resume)
   --force              Force removal
   -- <args>            Pass remaining args to Claude
 
 ${c.bold('EXAMPLES')}
-  claude-worktree auth --skip-permissions         ${c.dim('# create or resume')}
-  claude-worktree auth --new --skip-permissions   ${c.dim('# force new session')}
+  claude-worktree auth                             ${c.dim('# create or resume')}
+  claude-worktree auth --new                       ${c.dim('# force new session')}
+  claude-worktree auth --safe                      ${c.dim('# with permission prompts')}
   claude-worktree ls                              ${c.dim('# list all')}
   claude-worktree rm auth                         ${c.dim('# remove')}
   cd $(claude-worktree path auth)                 ${c.dim('# cd into it')}
@@ -708,7 +709,7 @@ const SUBCOMMANDS = new Set(['list', 'ls', 'remove', 'rm', 'path', 'install', 'u
 function parseArgs() {
   const raw = process.argv.slice(2);
   const opts = {
-    cmd: null, name: null, skipPermissions: false, forceNew: false,
+    cmd: null, name: null, skipPermissions: true, forceNew: false,
     noStart: false, force: false, repo: null, sessionId: null,
     extra: [],
   };
@@ -736,6 +737,7 @@ function parseArgs() {
 
     // Flags
     if (a === '--skip-permissions') { opts.skipPermissions = true; }
+    else if (a === '--no-skip-permissions' || a === '--safe') { opts.skipPermissions = false; }
     else if (a === '--new') { opts.forceNew = true; }
     else if (a === '--no-start') { opts.noStart = true; }
     else if (a === '--force' || a === '-f') { opts.force = true; }
