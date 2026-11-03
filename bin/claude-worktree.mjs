@@ -310,6 +310,17 @@ function cmdResume(name, entry, opts) {
   console.log(`  ${c.dim(`Last session: ${sess}`)}`);
   console.log();
 
+  // A backgrounded session refuses --continue; attach to it instead
+  if (!opts.sessionId) {
+    const bg = findBackgroundSession(entry.path);
+    if (bg) {
+      info(`Attaching to background session ${c.bold(bg.name || bg.id)} (${bg.id})`);
+      console.log();
+      launchClaude(entry.path, ['attach', bg.id]);
+      return;
+    }
+  }
+
   const args = [];
   if (opts.skipPermissions !== false) args.push('--dangerously-skip-permissions');
   if (opts.sessionId) {
@@ -319,6 +330,19 @@ function cmdResume(name, entry, opts) {
   }
   if (opts.extra.length) args.push(...opts.extra);
   launchClaude(entry.path, args);
+}
+
+function findBackgroundSession(path) {
+  const claudePath = findRealClaude();
+  if (!claudePath) return null;
+  const r = spawnSync(claudePath, ['agents', '--json'], { encoding: 'utf8', timeout: 15000, stdio: ['ignore', 'pipe', 'ignore'] });
+  try {
+    const list = JSON.parse(r.stdout || '[]').filter(s => s.kind === 'background' && s.cwd === path);
+    list.sort((a, b) => (b.startedAt || 0) - (a.startedAt || 0));
+    return list[0] || null;
+  } catch {
+    return null;
+  }
 }
 
 function cmdOpen(name, entry, opts) {
@@ -606,8 +630,17 @@ function cmdUninstall() {
 
 const OUR_COMMANDS = new Set(['list', 'ls', 'remove', 'rm', 'path', 'install', 'uninstall', 'help', 'version']);
 
+// Real claude subcommands; these must never be read as workspace names.
+// install/rm stay ours (OUR_COMMANDS is checked first).
+const CLAUDE_COMMANDS = new Set(['agents', 'attach', 'auth', 'auto-mode', 'doctor', 'gateway', 'import', 'logs', 'mcp',
+  'plugin', 'plugins', 'purge', 'respawn', 'setup-token', 'stop', 'kill', 'ultrareview', 'update', 'upgrade']);
+
 function isOurCommand(arg) {
   return OUR_COMMANDS.has(arg);
+}
+
+function isClaudeCommand(arg) {
+  return CLAUDE_COMMANDS.has(arg);
 }
 
 function cmdProxy(args) {
@@ -625,6 +658,12 @@ function cmdProxy(args) {
     // Re-parse as claude-worktree command
     process.argv = ['node', 'claude-worktree', ...args];
     main();
+    return;
+  }
+
+  // Real claude subcommand -> pass through
+  if (isClaudeCommand(first)) {
+    launchRealClaude(process.cwd(), args);
     return;
   }
 
@@ -832,7 +871,7 @@ export {
   regEnsure, regLoad, regSave, regAdd, regRemove, regLookup,
   resolve_ws, availableNames, ensureGitignore,
   git, gitRoot, mainBranch,
-  findRealClaude, isOurCommand,
+  findRealClaude, isOurCommand, isClaudeCommand, findBackgroundSession,
   parseArgs,
   cmdCreate, cmdResume, cmdOpen, cmdList, cmdRemove, cmdPath,
   cmdInstall, cmdUninstall, cmdProxy,
