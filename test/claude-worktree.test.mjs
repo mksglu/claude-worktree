@@ -362,6 +362,51 @@ describe('claude-worktree', async () => {
     });
   });
 
+  describe('isClaudeCommand', () => {
+    it('recognizes real claude subcommands', () => {
+      for (const s of ['agents', 'attach', 'auth', 'doctor', 'mcp', 'plugin', 'plugins', 'update', 'upgrade', 'stop', 'kill', 'logs']) {
+        assert.equal(mod.isClaudeCommand(s), true, s);
+      }
+    });
+
+    it('leaves workspace names and our commands alone', () => {
+      assert.equal(mod.isClaudeCommand('fix-bug'), false);
+      assert.equal(mod.isClaudeCommand('ls'), false);
+      assert.equal(mod.isClaudeCommand('--help'), false);
+      assert.equal(mod.isClaudeCommand(''), false);
+    });
+  });
+
+  describe('findBackgroundSession', () => {
+    let fakeBin, oldPath;
+
+    beforeEach(() => {
+      fakeBin = mkdtempSync(join(tmpdir(), 'cw-fake-claude-'));
+      const sessions = [
+        { id: 'old11111', kind: 'background', cwd: '/ws/a', startedAt: 1 },
+        { id: 'new22222', kind: 'background', cwd: '/ws/a', startedAt: 2 },
+        { id: 'int33333', kind: 'interactive', cwd: '/ws/b', startedAt: 3 },
+      ];
+      writeFileSync(join(fakeBin, 'claude'), `#!/bin/sh\necho '${JSON.stringify(sessions)}'\n`, { mode: 0o755 });
+      oldPath = process.env.PATH;
+      process.env.PATH = `${fakeBin}:${oldPath}`;
+    });
+
+    afterEach(() => {
+      process.env.PATH = oldPath;
+      rmSync(fakeBin, { recursive: true, force: true });
+    });
+
+    it('returns the newest background session for the path', () => {
+      assert.equal(mod.findBackgroundSession('/ws/a').id, 'new22222');
+    });
+
+    it('ignores interactive sessions and other paths', () => {
+      assert.equal(mod.findBackgroundSession('/ws/b'), null);
+      assert.equal(mod.findBackgroundSession('/ws/none'), null);
+    });
+  });
+
   // ── 7. Git helpers ─────────────────────────────────────────────────────
 
   describe('git helpers', () => {
